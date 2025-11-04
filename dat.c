@@ -1,4 +1,3 @@
-#include <arpa/inet.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -523,6 +522,48 @@ typedef struct {
   unsigned char *pixelData;
 } BMPResult;
 
+uint8_t* convert_bmp_to_allegro_format(BMPResult *bmp) {
+    int width = bmp->infoHeader.biWidth;
+    int height = abs(bmp->infoHeader.biHeight);
+    int bytes_per_pixel = bmp->infoHeader.biBitCount / 8;
+    
+    // Calcular row stride del BMP (con padding)
+    int bmp_row_stride = ((width * bmp->infoHeader.biBitCount + 31) / 32) * 4;
+    
+    // Calcular tamaño sin padding para Allegro
+    int allegro_size = width * height * bytes_per_pixel;
+    uint8_t *allegro_data = malloc(allegro_size);
+    
+    // Convertir fila por fila
+    for (int y = 0; y < height; y++) {
+        // BMP está invertido (bottom-up), así que leemos desde el final
+        int bmp_y = height - 1 - y;
+        
+        uint8_t *src = bmp->pixelData + (bmp_y * bmp_row_stride);
+        uint8_t *dst = allegro_data + (y * width * bytes_per_pixel);
+        
+        // Copiar y convertir BGR a RGB si es de 24/32 bits
+        for (int x = 0; x < width; x++) {
+            if (bytes_per_pixel == 3) {
+                dst[x*3 + 0] = src[x*3 + 2]; // R
+                dst[x*3 + 1] = src[x*3 + 1]; // G
+                dst[x*3 + 2] = src[x*3 + 0]; // B
+            } else if (bytes_per_pixel == 4) {
+                dst[x*4 + 0] = src[x*4 + 2]; // R
+                dst[x*4 + 1] = src[x*4 + 1]; // G
+                dst[x*4 + 2] = src[x*4 + 0]; // B
+                dst[x*4 + 3] = src[x*4 + 3]; // A
+            } else {
+                // Para 8 bits o menos, copiar directo
+                memcpy(dst, src, width * bytes_per_pixel);
+                break;
+            }
+        }
+    }
+    
+    return allegro_data;
+}
+
 BMPResult read_bmp(char *filename) {
   FILE *f = fopen(filename, "rb");
   BMPResult res;
@@ -742,7 +783,7 @@ int main(int argc, char *argv[]) {
     bitmap->bits_per_pixel = sprite.infoHeader.biBitCount;
     bitmap->height = sprite.infoHeader.biHeight;
     bitmap->width = sprite.infoHeader.biWidth;
-    bitmap->image = sprite.pixelData;
+    bitmap->image = convert_bmp_to_allegro_format(&sprite);
     dat->objects[0].len_compressed = sprite.infoHeader.biSizeImage;
     dat->objects[0].len_uncompressed = sprite.infoHeader.biSizeImage;
     dat->objects[0].body.bitmap = bitmap;
