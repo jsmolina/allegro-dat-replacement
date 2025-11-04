@@ -272,6 +272,9 @@ uint8_t *deserialize_dat_bitmap(uint8_t *buffer, DatBitmap *bitmap) {
   if (image_size > 0) {
     bitmap->image = (uint8_t *)malloc(image_size);
     buffer = read_bytes(buffer, bitmap->image, image_size);
+    FILE * f = fopen("raw_bmp_in_dat.bmp", "wb");
+    fwrite(bitmap->image, sizeof(uint8_t), image_size, f);
+    fclose(f);
   } else {
     bitmap->image = NULL;
   }
@@ -522,47 +525,26 @@ typedef struct {
   unsigned char *pixelData;
 } BMPResult;
 
-uint8_t* convert_bmp_to_allegro_format(BMPResult *bmp) {
-    int width = bmp->infoHeader.biWidth;
-    int height = abs(bmp->infoHeader.biHeight);
-    int bytes_per_pixel = bmp->infoHeader.biBitCount / 8;
-    
-    // Calcular row stride del BMP (con padding)
-    int bmp_row_stride = ((width * bmp->infoHeader.biBitCount + 31) / 32) * 4;
-    
-    // Calcular tamaño sin padding para Allegro
-    int allegro_size = width * height * bytes_per_pixel;
-    uint8_t *allegro_data = malloc(allegro_size);
-    
-    // Convertir fila por fila
+void removeBmpPadding(
+    unsigned char *rawPixelData,
+    unsigned char *pixelData,
+    int width,
+    int height,
+    int bitsPerPixel
+) {
+    int bytesPerPixel = bitsPerPixel / 8;
+    int rowSize = ((bitsPerPixel * width + 31) / 32) * 4;
+    int rowDataSize = width * bytesPerPixel;
+
     for (int y = 0; y < height; y++) {
-        // BMP está invertido (bottom-up), así que leemos desde el final
-        int bmp_y = height - 1 - y;
-        
-        uint8_t *src = bmp->pixelData + (bmp_y * bmp_row_stride);
-        uint8_t *dst = allegro_data + (y * width * bytes_per_pixel);
-        
-        // Copiar y convertir BGR a RGB si es de 24/32 bits
-        for (int x = 0; x < width; x++) {
-            if (bytes_per_pixel == 3) {
-                dst[x*3 + 0] = src[x*3 + 2]; // R
-                dst[x*3 + 1] = src[x*3 + 1]; // G
-                dst[x*3 + 2] = src[x*3 + 0]; // B
-            } else if (bytes_per_pixel == 4) {
-                dst[x*4 + 0] = src[x*4 + 2]; // R
-                dst[x*4 + 1] = src[x*4 + 1]; // G
-                dst[x*4 + 2] = src[x*4 + 0]; // B
-                dst[x*4 + 3] = src[x*4 + 3]; // A
-            } else {
-                // Para 8 bits o menos, copiar directo
-                memcpy(dst, src, width * bytes_per_pixel);
-                break;
-            }
-        }
+        // En BMP: fila y desde el final
+        unsigned char *src = rawPixelData + (rowSize * y);
+        unsigned char *dst = pixelData + (rowDataSize * y);
+
+        memcpy(dst, src, rowDataSize);
     }
-    
-    return allegro_data;
 }
+
 
 BMPResult read_bmp(char *filename) {
   FILE *f = fopen(filename, "rb");
@@ -599,11 +581,15 @@ BMPResult read_bmp(char *filename) {
 
   // Ir al inicio de los datos de imagen
   fseek(f, res.fileHeader.bfOffBits, SEEK_SET);
-
+  printf("size: %d\n", res.infoHeader.biSizeImage);
   // Leer los píxeles
-  fread(pixelData, res.infoHeader.biSizeImage, 1, f);
+  fread(pixelData, res.infoHeader.biSizeImage,1,f);
+
+  unsigned char *noPaddingPixelData = malloc(res.infoHeader.biWidth * res.infoHeader.biHeight);
+  removeBmpPadding(pixelData, noPaddingPixelData, res.infoHeader.biWidth, res.infoHeader.biHeight, res.infoHeader.biBitCount);
 
   fclose(f);
+  res.pixelData = noPaddingPixelData;
 
   printf("BMP Loaded: %dx%d, %d bits/pixel, size:%d\n",
          res.infoHeader.biWidth, res.infoHeader.biHeight,
@@ -670,7 +656,12 @@ int writeallegrodat2(const char *filename, AllegroDat *dat) {
       fwrite(&bebpp, 2, 1, f);
       fwrite(&bew, 2, 1, f);
       fwrite(&beh, 2, 1, f);
-      fwrite(bmp->image, 1, obj->len_uncompressed, f);
+      printf("len: %d\n", obj->len_uncompressed);
+      for (int imageIdx = 0; imageIdx < obj->len_uncompressed; imageIdx++) {
+          // currpixel
+          printf("pix %d: '%02X'\n",  imageIdx, bmp->image[imageIdx]);
+      }
+      fwrite(bmp->image, obj->len_uncompressed, 1, f);
     }
     // TODO (Idem para FONT, RLE...)
   }
@@ -777,15 +768,15 @@ int main(int argc, char *argv[]) {
     dat->objects[0].properties[2].len_body = strlen("/foo");
     Property *end = &dat->objects[0].properties[3];
 
-    BMPResult sprite = read_bmp("sprite1.bmp");
+    BMPResult sprite = read_bmp("small.bmp");
 
     DatBitmap *bitmap = malloc(sizeof(DatBitmap));
     bitmap->bits_per_pixel = sprite.infoHeader.biBitCount;
     bitmap->height = sprite.infoHeader.biHeight;
     bitmap->width = sprite.infoHeader.biWidth;
-    bitmap->image = convert_bmp_to_allegro_format(&sprite);
-    dat->objects[0].len_compressed = sprite.infoHeader.biSizeImage;
-    dat->objects[0].len_uncompressed = sprite.infoHeader.biSizeImage;
+    bitmap->image = sprite.pixelData;
+    dat->objects[0].len_compressed = sprite.infoHeader.biWidth * sprite.infoHeader.biHeight;
+    dat->objects[0].len_uncompressed = sprite.infoHeader.biWidth * sprite.infoHeader.biHeight;
     dat->objects[0].body.bitmap = bitmap;
 
     if (writeallegrodat2(dat_file, dat)) {
