@@ -1,4 +1,3 @@
-#include <arpa/inet.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -273,6 +272,9 @@ uint8_t *deserialize_dat_bitmap(uint8_t *buffer, DatBitmap *bitmap) {
   if (image_size > 0) {
     bitmap->image = (uint8_t *)malloc(image_size);
     buffer = read_bytes(buffer, bitmap->image, image_size);
+    FILE * f = fopen("raw_bmp_in_dat.bmp", "wb");
+    fwrite(bitmap->image, sizeof(uint8_t), image_size, f);
+    fclose(f);
   } else {
     bitmap->image = NULL;
   }
@@ -523,6 +525,27 @@ typedef struct {
   unsigned char *pixelData;
 } BMPResult;
 
+void removeBmpPadding(
+    unsigned char *rawPixelData,
+    unsigned char *pixelData,
+    int width,
+    int height,
+    int bitsPerPixel
+) {
+    int bytesPerPixel = bitsPerPixel / 8;
+    int rowSize = ((bitsPerPixel * width + 31) / 32) * 4;
+    int rowDataSize = width * bytesPerPixel;
+
+    for (int y = 0; y < height; y++) {
+        // En BMP: fila y desde el final
+        unsigned char *src = rawPixelData + (rowSize * y);
+        unsigned char *dst = pixelData + (rowDataSize * y);
+
+        memcpy(dst, src, rowDataSize);
+    }
+}
+
+
 BMPResult read_bmp(char *filename) {
   FILE *f = fopen(filename, "rb");
   BMPResult res;
@@ -558,11 +581,15 @@ BMPResult read_bmp(char *filename) {
 
   // Ir al inicio de los datos de imagen
   fseek(f, res.fileHeader.bfOffBits, SEEK_SET);
-
+  printf("size: %d\n", res.infoHeader.biSizeImage);
   // Leer los píxeles
-  fread(pixelData, res.infoHeader.biSizeImage, 1, f);
+  fread(pixelData, res.infoHeader.biSizeImage,1,f);
+
+  unsigned char *noPaddingPixelData = malloc(res.infoHeader.biWidth * res.infoHeader.biHeight);
+  removeBmpPadding(pixelData, noPaddingPixelData, res.infoHeader.biWidth, res.infoHeader.biHeight, res.infoHeader.biBitCount);
 
   fclose(f);
+  res.pixelData = noPaddingPixelData;
 
   printf("BMP Loaded: %dx%d, %d bits/pixel, size:%d\n",
          res.infoHeader.biWidth, res.infoHeader.biHeight,
@@ -629,7 +656,12 @@ int writeallegrodat2(const char *filename, AllegroDat *dat) {
       fwrite(&bebpp, 2, 1, f);
       fwrite(&bew, 2, 1, f);
       fwrite(&beh, 2, 1, f);
-      fwrite(bmp->image, 1, obj->len_uncompressed, f);
+      printf("len: %d\n", obj->len_uncompressed);
+      for (int imageIdx = 0; imageIdx < obj->len_uncompressed; imageIdx++) {
+          // currpixel
+          printf("pix %d: '%02X'\n",  imageIdx, bmp->image[imageIdx]);
+      }
+      fwrite(bmp->image, obj->len_uncompressed, 1, f);
     }
     // TODO (Idem para FONT, RLE...)
   }
@@ -736,15 +768,15 @@ int main(int argc, char *argv[]) {
     dat->objects[0].properties[2].len_body = strlen("/foo");
     Property *end = &dat->objects[0].properties[3];
 
-    BMPResult sprite = read_bmp("sprite1.bmp");
+    BMPResult sprite = read_bmp("small.bmp");
 
     DatBitmap *bitmap = malloc(sizeof(DatBitmap));
     bitmap->bits_per_pixel = sprite.infoHeader.biBitCount;
     bitmap->height = sprite.infoHeader.biHeight;
     bitmap->width = sprite.infoHeader.biWidth;
     bitmap->image = sprite.pixelData;
-    dat->objects[0].len_compressed = sprite.infoHeader.biSizeImage;
-    dat->objects[0].len_uncompressed = sprite.infoHeader.biSizeImage;
+    dat->objects[0].len_compressed = sprite.infoHeader.biWidth * sprite.infoHeader.biHeight;
+    dat->objects[0].len_uncompressed = sprite.infoHeader.biWidth * sprite.infoHeader.biHeight;
     dat->objects[0].body.bitmap = bitmap;
 
     if (writeallegrodat2(dat_file, dat)) {
