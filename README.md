@@ -2,4 +2,12 @@
 Allegro dat generator in pure C and structs, WIP
 
 Compiling: 
-Just gcc-it: `gcc dat.c -o dat`
+`Make all`
+
+Executing: 
+```dat create out.dat
+      [--bmp file.bmp]*
+      [--pal file.act]*
+      [--rle file.rle]*
+      [--font8-bmp file.bmp]*
+      [--font16-bmp file.bmp]*```
