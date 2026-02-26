@@ -11,4 +11,5 @@ dat create out.dat
       [--pal file.act]*
       [--rle file.rle]*
       [--font8-bmp file.bmp]*
-      [--font16-bmp file.bmp]*```
+      [--font16-bmp file.bmp]*
+```
