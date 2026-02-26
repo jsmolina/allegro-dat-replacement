@@ -5,7 +5,8 @@ Compiling:
 `Make all`
 
 Executing: 
-```dat create out.dat
+```bash
+dat create out.dat
       [--bmp file.bmp]*
       [--pal file.act]*
       [--rle file.rle]*
