@@ -11,6 +11,7 @@
 #include "dat_loader_font.h"
 #include "dat_loader_pal.h"
 #include "dat_writer.h"
+#include "midi_to_allegro.h"
 
 static char* dupstr(const char* s) {
     size_t n = strlen(s);
@@ -51,8 +52,12 @@ static void sanitize_allegro_name(char* dest, const char* path) {
 static void now_datestr(char* buf, size_t n) {
     time_t t = time(NULL);
     struct tm* tmv = localtime(&t);
-    if (!tmv) { if (n) buf[0] = '\0'; return; }
-    strftime(buf, n, "%d-%m-%Y, %H:%M", tmv);
+    if (!tmv) {
+        if (n)
+            buf[0] = '\0';
+        return;
+    }
+    strftime(buf, n, "%Y-%m-%d %H:%M:%S", tmv);
 }
 
 static void usage(void) {
@@ -152,18 +157,27 @@ int main(int argc, char** argv) {
             i++; continue;
         }
 
-        /* MIDI (Con sanitización de nombre para compatibilidad) */
+        /* MIDI: convierte SMF (.mid) al formato interno de Allegro 4 */
         if (strcmp(argv[i], "--midi") == 0 && i + 1 < argc) {
-            u8* buf; u32 sz;
-            if (load_file_bytes(argv[i+1], &buf, &sz)) {
-                sanitize_allegro_name(clean_name, basename_portable(argv[i+1]));
-                DatObject* o = &objs[dat->num_objects++];
-                memcpy(o->type, "MIDI", 4); o->body.any = buf;
-                o->len_uncompressed = o->len_compressed = (s32)sz;
-                o->num_properties = 3; o->properties = (Property*)calloc(3, sizeof(Property));
-                set_prop(&o->properties[0], "DATE", datebuf);
-                set_prop(&o->properties[1], "NAME", clean_name);
-                set_prop(&o->properties[2], "ORIG", argv[i+1]);
+            u8* raw; u32 raw_sz;
+            if (load_file_bytes(argv[i+1], &raw, &raw_sz)) {
+                u8* alg_buf = NULL;
+                unsigned int alg_sz = 0;
+                if (mid_to_allegro_dat(raw, raw_sz, &alg_buf, &alg_sz)) {
+                    sanitize_allegro_name(clean_name, basename_portable(argv[i+1]));
+                    DatObject* o = &objs[dat->num_objects++];
+                    memcpy(o->type, "MIDI", 4);
+                    o->body.any = alg_buf;
+                    o->len_uncompressed = o->len_compressed = (s32)alg_sz;
+                    o->num_properties = 3;
+                    o->properties = (Property*)calloc(3, sizeof(Property));
+                    set_prop(&o->properties[0], "DATE", datebuf);
+                    set_prop(&o->properties[1], "NAME", clean_name);
+                    set_prop(&o->properties[2], "ORIG", argv[i+1]);
+                } else {
+                    fprintf(stderr, "Error: no se pudo convertir '%s' a formato MIDI de Allegro\n", argv[i+1]);
+                }
+                free(raw);
             }
             i++; continue;
         }
