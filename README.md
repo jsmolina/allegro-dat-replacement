@@ -12,4 +12,5 @@ dat create out.dat
       [--rle file.rle]*
       [--font8-bmp file.bmp]*
       [--font16-bmp file.bmp]*
+      [--midi file.midi]*
 ```
