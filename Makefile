@@ -2,7 +2,7 @@
 CC=gcc
 CFLAGS=-O2 -std=c11 -Wall -Wextra
 
-SRC=src/memory_free.c src/dat_writer.c src/dat_loader_bmp.c src/dat_loader_pal.c src/dat_loader_font.c src/dat_cli.c
+SRC=src/midi_to_allegro.c src/dat_loader_data.c src/memory_free.c src/dat_writer.c src/dat_loader_bmp.c src/dat_loader_pal.c src/dat_loader_font.c src/dat_cli.c
 
 all: dat
 
