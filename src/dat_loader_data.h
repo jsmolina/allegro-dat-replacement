@@ -1,0 +1,1 @@
+int load_file_bytes(const char*,unsigned char**,unsigned int*);
