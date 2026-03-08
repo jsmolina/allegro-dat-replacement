@@ -1,5 +1,7 @@
 # allegro-dat-replacement
-Allegro dat generator in pure C and structs, WIP
+Allegro dat file generator in pure C and structs, WIP.
+Mostly working, helped from https://formats.kaitai.io/allegro_dat/index.html
+
 
 Compiling: 
 `Make all`
