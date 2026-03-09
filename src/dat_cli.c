@@ -72,11 +72,12 @@ static void usage(void) {
     printf("\nAllegro 4 DAT creator (ANSI C) - Full Support\n\n");
     printf("Usage:\n");
     printf("  dat create out.dat\n");
-    printf("      [--bmp file.bmp]* [--pal file.act]*\n");
+    printf("      [--bmp file.bmp]*\n");
     printf("      [--rle file.rle]* [--midi file.mid]*\n");
     printf("      [--font8-bmp f.bmp]* [--font16-bmp f.bmp]*\n");
     printf("      [--data file.bin]* [--wav file.wav]*\n");
-    printf("      [--flic file.fli/flc]*\n\n");
+    printf("      [--flic file.fli/flc]*\n");
+    printf("      [--pal file.act]* [--pal-bmp file.bmp]*\n\n");
     printf("  dat list in.dat\n\n");
 }
 
@@ -232,11 +233,11 @@ static int dat_list(const char *filename) {
 
     /* Load whole file */
     if (!load_file_bytes(filename, &buf, &bufsz)) {
-        fprintf(stderr, "Error: cannot open '%s'\n", filename);
+        fprintf(stderr, "Error: no se puede abrir '%s'\n", filename);
         return 1;
     }
 
-    if (bufsz < 12) { free(buf); fprintf(stderr, "Error: file too small\n"); return 1; }
+    if (bufsz < 12) { free(buf); fprintf(stderr, "Error: fichero demasiado pequenio\n"); return 1; }
 
     pos = 0;
     pack_magic  = read_be32_buf(buf, bufsz, &pos);
@@ -248,17 +249,17 @@ static int dat_list(const char *filename) {
         /* F_NOPACK_MAGIC + DAT_MAGIC - uncompressed, OK */
     } else if (pack_magic == 0x736C6821u) {
         /* F_PACK_MAGIC - LZSS compressed, not supported */
-        fprintf(stderr, "Error: '%s' is compressed with LZSS (not supported)\n", filename);
+        fprintf(stderr, "Error: '%s' esta comprimido con LZSS (no soportado)\n", filename);
         free(buf); return 1;
     } else {
-        fprintf(stderr, "Error: '%s' is not a valid Allegro DAT file\n", filename);
+        fprintf(stderr, "Error: '%s' no es un fichero DAT de Allegro valido\n", filename);
         free(buf); return 1;
     }
 
-    printf("File: %s\n", filename);
-    printf("Objects: %u\n\n", num_objects);
+    printf("Fichero: %s\n", filename);
+    printf("Objetos: %u\n\n", num_objects);
     printf("%-4s  %-*s  %-14s  %10s  %s\n",
-           "#", name_w, "Name", "Type", "Size", "Details");
+           "#", name_w, "Nombre", "Tipo", "Tamano", "Detalles");
     printf("%-4s  %-*s  %-14s  %10s  %s\n",
            "----", name_w, "--------------------------------",
            "--------------", "----------", "-------");
@@ -396,6 +397,22 @@ int main(int argc, char** argv) {
                 DatObject* o = &objs[dat->num_objects++];
                 memcpy(o->type, "PAL ", 4); o->body.pal = pal;
                 o->len_uncompressed = o->len_compressed = 256 * 4; /* Spec: 256 x {R,G,B,pad} */
+                o->num_properties = 3; o->properties = (Property*)calloc(3, sizeof(Property));
+                set_prop(&o->properties[0], "DATE", datebuf);
+                sanitize_allegro_name(clean_name, basename_portable(argv[i+1]));
+                set_prop(&o->properties[1], "NAME", clean_name);
+                set_prop(&o->properties[2], "ORIG", argv[i+1]);
+            }
+            i++; continue;
+        }
+
+        /* PAL desde BMP indexado (1/4/8 bpp) */
+        if (strcmp(argv[i], "--pal-bmp") == 0 && i + 1 < argc) {
+            u8* pal = NULL;
+            if (load_bmp_to_pal63(argv[i+1], &pal)) {
+                DatObject* o = &objs[dat->num_objects++];
+                memcpy(o->type, "PAL ", 4); o->body.pal = pal;
+                o->len_uncompressed = o->len_compressed = 256 * 4;
                 o->num_properties = 3; o->properties = (Property*)calloc(3, sizeof(Property));
                 set_prop(&o->properties[0], "DATE", datebuf);
                 sanitize_allegro_name(clean_name, basename_portable(argv[i+1]));

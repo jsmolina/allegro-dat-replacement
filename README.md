@@ -14,6 +14,7 @@ Executing:
 dat create out.dat
       [--bmp file.bmp]*
       [--pal file.act]*
+      [--pal-bmp file.bmp]*
       [--rle file.rle]*
       [--font8-bmp file.bmp]*
       [--font16-bmp file.bmp]*
