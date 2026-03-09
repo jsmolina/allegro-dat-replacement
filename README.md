@@ -18,4 +18,6 @@ dat create out.dat
       [--font8-bmp file.bmp]*
       [--font16-bmp file.bmp]*
       [--midi file.midi]*
+      [--wav file.wav]*
+      [--data file.bin]*
 ```
