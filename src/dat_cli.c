@@ -12,6 +12,7 @@
 #include "dat_loader_pal.h"
 #include "dat_writer.h"
 #include "midi_to_allegro.h"
+#include "wav_to_allegro.h"
 
 static char* dupstr(const char* s) {
     size_t n = strlen(s);
@@ -57,7 +58,14 @@ static void now_datestr(char* buf, size_t n) {
             buf[0] = '\0';
         return;
     }
-    strftime(buf, n, "%Y-%m-%d %H:%M:%S", tmv);
+    /* Spec format: "m-dd-yyyy, h:mm" - month and hour without leading zero */
+    strftime(buf, n, "%m-%d-%Y, %H:%M", tmv);
+    /* Remove leading zeros from month and hour as per spec ("3-03-2026, 9:26") */
+    if (buf[0] == '0') memmove(buf, buf + 1, strlen(buf));
+    {
+        char *colon = strchr(buf, ',');
+        if (colon && colon[2] == '0') memmove(colon + 2, colon + 3, strlen(colon + 3) + 1);
+    }
 }
 
 static void usage(void) {
@@ -95,7 +103,7 @@ int main(int argc, char** argv) {
             if (load_bmp_to_dat_bitmap(argv[i+1], &bmp)) {
                 DatObject* o = &objs[dat->num_objects++];
                 memcpy(o->type, "BMP ", 4); o->body.bmp = bmp;
-                o->len_uncompressed = o->len_compressed = (s32)(2+2+2 + (bmp->width * bmp->height));
+                o->len_uncompressed = o->len_compressed = (s32)(2+2+2 + (bmp->width * bmp->height * ((u32)bmp->bits_per_pixel / 8u)));
                 o->num_properties = 3; o->properties = (Property*)calloc(3, sizeof(Property));
                 set_prop(&o->properties[0], "DATE", datebuf);
                 sanitize_allegro_name(clean_name, basename_portable(argv[i+1]));
@@ -111,7 +119,7 @@ int main(int argc, char** argv) {
             if (load_act_to_pal63(argv[i+1], &pal)) {
                 DatObject* o = &objs[dat->num_objects++];
                 memcpy(o->type, "PAL ", 4); o->body.pal = pal;
-                o->len_uncompressed = o->len_compressed = 256 * 3;
+                o->len_uncompressed = o->len_compressed = 256 * 4; /* Spec: 256 x {R,G,B,pad} */
                 o->num_properties = 3; o->properties = (Property*)calloc(3, sizeof(Property));
                 set_prop(&o->properties[0], "DATE", datebuf);
                 sanitize_allegro_name(clean_name, basename_portable(argv[i+1]));
@@ -182,18 +190,27 @@ int main(int argc, char** argv) {
             i++; continue;
         }
 
-        /* WAV: se guarda verbatim con tipo "WAV " y 3 props (DATE, NAME, ORIG) */
+        /* WAV: convierte RIFF/PCM al formato interno SAMP de Allegro 4 */
         if (strcmp(argv[i], "--wav") == 0 && i + 1 < argc) {
-            u8* buf; u32 sz;
-            if (load_file_bytes(argv[i+1], &buf, &sz)) {
-                DatObject* o = &objs[dat->num_objects++];
-                memcpy(o->type, "WAV ", 4); o->body.any = buf;
-                o->len_uncompressed = o->len_compressed = (s32)sz;
-                o->num_properties = 3; o->properties = (Property*)calloc(3, sizeof(Property));
-                sanitize_allegro_name(clean_name, basename_portable(argv[i+1]));
-                set_prop(&o->properties[0], "DATE", datebuf);
-                set_prop(&o->properties[1], "NAME", clean_name);
-                set_prop(&o->properties[2], "ORIG", argv[i+1]);
+            u8* raw; u32 raw_sz;
+            if (load_file_bytes(argv[i+1], &raw, &raw_sz)) {
+                u8* alg_buf = NULL;
+                unsigned int alg_sz = 0;
+                if (wav_to_allegro_samp(raw, raw_sz, &alg_buf, &alg_sz)) {
+                    DatObject* o = &objs[dat->num_objects++];
+                    memcpy(o->type, "SAMP", 4);
+                    o->body.any = alg_buf;
+                    o->len_uncompressed = o->len_compressed = (s32)alg_sz;
+                    o->num_properties = 3;
+                    o->properties = (Property*)calloc(3, sizeof(Property));
+                    sanitize_allegro_name(clean_name, basename_portable(argv[i+1]));
+                    set_prop(&o->properties[0], "DATE", datebuf);
+                    set_prop(&o->properties[1], "NAME", clean_name);
+                    set_prop(&o->properties[2], "ORIG", argv[i+1]);
+                } else {
+                    fprintf(stderr, "Error: no se pudo convertir '%s' a formato SAMP de Allegro\n", argv[i+1]);
+                }
+                free(raw);
             }
             i++; continue;
         }
