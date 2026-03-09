@@ -20,4 +20,5 @@ dat create out.dat
       [--midi file.midi]*
       [--wav file.wav]*
       [--data file.bin]*
+      [--flic file.fli]*
 ```
