@@ -21,6 +21,8 @@ dat create out.dat
       [--wav file.wav]*
       [--data file.bin]*
       [--flic file.fli]*
+
+dat list in.dat
 ```
 
 ## What problem it solves
