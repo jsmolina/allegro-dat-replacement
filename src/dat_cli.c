@@ -74,7 +74,8 @@ static void usage(void) {
     printf("      [--bmp file.bmp]* [--pal file.act]*\n");
     printf("      [--rle file.rle]* [--midi file.mid]*\n");
     printf("      [--font8-bmp f.bmp]* [--font16-bmp f.bmp]*\n");
-    printf("      [--data file.bin]* [--wav file.wav]*\n\n");
+    printf("      [--data file.bin]* [--wav file.wav]*\n");
+    printf("      [--flic file.fli/flc]*\n\n");
 }
 
 int main(int argc, char** argv) {
@@ -211,6 +212,29 @@ int main(int argc, char** argv) {
                     fprintf(stderr, "Error: no se pudo convertir '%s' a formato SAMP de Allegro\n", argv[i+1]);
                 }
                 free(raw);
+            }
+            i++; continue;
+        }
+
+        /* FLIC: animacion FLI/FLC, almacenada verbatim (spec: "standard format") */
+        if (strcmp(argv[i], "--flic") == 0 && i + 1 < argc) {
+            u8* buf; u32 sz;
+            if (load_file_bytes(argv[i+1], &buf, &sz)) {
+                /* Validar magic FLI (0xAF11) o FLC (0xAF12) en offset 4, little-endian */
+                if (sz >= 6 && ((buf[4] == 0x11 && buf[5] == 0xAF) ||
+                                (buf[4] == 0x12 && buf[5] == 0xAF))) {
+                    DatObject* o = &objs[dat->num_objects++];
+                    memcpy(o->type, "FLIC", 4); o->body.any = buf;
+                    o->len_uncompressed = o->len_compressed = (s32)sz;
+                    o->num_properties = 3; o->properties = (Property*)calloc(3, sizeof(Property));
+                    sanitize_allegro_name(clean_name, basename_portable(argv[i+1]));
+                    set_prop(&o->properties[0], "DATE", datebuf);
+                    set_prop(&o->properties[1], "NAME", clean_name);
+                    set_prop(&o->properties[2], "ORIG", argv[i+1]);
+                } else {
+                    fprintf(stderr, "Error: '%s' no es un fichero FLI/FLC valido\n", argv[i+1]);
+                    free(buf);
+                }
             }
             i++; continue;
         }
