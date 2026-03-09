@@ -1,5 +1,5 @@
 # allegro-dat-replacement
-Allegro dat file generator in pure C and structs, WIP.
+Allegro dat file generator in ANSI C, mostly complete.
 
 Mostly working!
 
