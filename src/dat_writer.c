@@ -8,11 +8,16 @@ static void write_bmp(FILE* f, const DatBitmap* b) {
     fwrite(&bebpp, 2, 1, f);
     fwrite(&bew, 2, 1, f);
     fwrite(&beh, 2, 1, f);
-    fwrite(b->image, 1, (size_t)b->width * b->height, f);
+    fwrite(b->image, 1, (size_t)b->width * b->height * ((size_t)b->bits_per_pixel / 8), f);
 }
 
 static void write_pal(FILE* f, const u8* pal) {
-    fwrite(pal, 1, 256 * 3, f);
+    /* Spec: 256 x { R, G, B, pad } = 256*4 bytes */
+    int i;
+    for (i = 0; i < 256; i++) {
+        fwrite(pal + i * 3, 1, 3, f);
+        fputc(0, f); /* pad byte */
+    }
 }
 
 static void write_rle(FILE* f, const DatRleSprite* r) {
