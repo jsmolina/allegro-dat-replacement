@@ -72,11 +72,12 @@ static void usage(void) {
     printf("\nAllegro 4 DAT creator (ANSI C) - Full Support\n\n");
     printf("Usage:\n");
     printf("  dat create out.dat\n");
-    printf("      [--bmp file.bmp]* [--pal file.act]*\n");
+    printf("      [--bmp file.bmp]*\n");
     printf("      [--rle file.rle]* [--midi file.mid]*\n");
     printf("      [--font8-bmp f.bmp]* [--font16-bmp f.bmp]*\n");
     printf("      [--data file.bin]* [--wav file.wav]*\n");
-    printf("      [--flic file.fli/flc]*\n\n");
+    printf("      [--flic file.fli/flc]*\n");
+    printf("      [--pal file.act]* [--pal-bmp file.bmp]*\n\n");
     printf("  dat list in.dat\n\n");
 }
 
@@ -405,6 +406,22 @@ int main(int argc, char** argv) {
             i++; continue;
         }
 
+        /* PAL desde BMP indexado (1/4/8 bpp) */
+        if (strcmp(argv[i], "--pal-bmp") == 0 && i + 1 < argc) {
+            u8* pal = NULL;
+            if (load_bmp_to_pal63(argv[i+1], &pal)) {
+                DatObject* o = &objs[dat->num_objects++];
+                memcpy(o->type, "PAL ", 4); o->body.pal = pal;
+                o->len_uncompressed = o->len_compressed = 256 * 4;
+                o->num_properties = 3; o->properties = (Property*)calloc(3, sizeof(Property));
+                set_prop(&o->properties[0], "DATE", datebuf);
+                sanitize_allegro_name(clean_name, basename_portable(argv[i+1]));
+                set_prop(&o->properties[1], "NAME", clean_name);
+                set_prop(&o->properties[2], "ORIG", argv[i+1]);
+            }
+            i++; continue;
+        }
+
         /* RLE */
         if (strcmp(argv[i], "--rle") == 0 && i + 1 < argc) {
             u8* buf; u32 sz;
@@ -484,7 +501,7 @@ int main(int argc, char** argv) {
                     set_prop(&o->properties[1], "NAME", clean_name);
                     set_prop(&o->properties[2], "ORIG", argv[i+1]);
                 } else {
-                    fprintf(stderr, "Error: no se pudo convertir '%s' a formato SAMP de Allegro\n", argv[i+1]);
+                    fprintf(stderr, "Error: could not convert '%s' to Allegro SAMP format\n", argv[i+1]);
                 }
                 free(raw);
             }
@@ -507,7 +524,7 @@ int main(int argc, char** argv) {
                     set_prop(&o->properties[1], "NAME", clean_name);
                     set_prop(&o->properties[2], "ORIG", argv[i+1]);
                 } else {
-                    fprintf(stderr, "Error: '%s' no es un fichero FLI/FLC valido\n", argv[i+1]);
+                    fprintf(stderr, "Error: '%s' is not a valid FLI/FLC file\n", argv[i+1]);
                     free(buf);
                 }
             }
