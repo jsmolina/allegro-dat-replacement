@@ -3,7 +3,7 @@ Allegro dat file generator in ANSI C, mostly complete.
 
 Mostly working!
 
-Dat format definition obtained from: https://formats.kaitai.io/allegro_dat/index.html
+Dat format definition obtained from: https://formats.kaitai.io/allegro_dat/index.html and https://liballeg.org/stabledocs/en/datafile.html
 + Help from Claude
 
 Compiling: 
