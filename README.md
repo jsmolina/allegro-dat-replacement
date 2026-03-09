@@ -4,7 +4,7 @@ Allegro dat file generator in pure C and structs, WIP.
 Mostly working!
 
 Dat format definition obtained from: https://formats.kaitai.io/allegro_dat/index.html
-
++ Help from Claude
 
 Compiling: 
 `Make all`
