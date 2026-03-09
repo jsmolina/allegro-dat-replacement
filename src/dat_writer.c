@@ -75,7 +75,7 @@ int dat_write(const char* filename, AllegroDat* dat) {
         else if (!memcmp(o->type, "RLE ", 4)) write_rle(f, o->body.rle);
         else if (!memcmp(o->type, "FONT", 4)) write_font(f, o->body.font);
         else if (o->body.any && o->len_uncompressed > 0) {
-            /* MIDI, DATA, info */
+            /* MIDI, FLIC, DATA, info y cualquier tipo verbatim */
             fwrite(o->body.any, 1, (size_t)o->len_uncompressed, f);
         }
     }
