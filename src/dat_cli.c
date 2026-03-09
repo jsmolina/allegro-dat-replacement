@@ -182,18 +182,34 @@ int main(int argc, char** argv) {
             i++; continue;
         }
 
-        /* DATA / WAV */
-        if ((strcmp(argv[i], "--data") == 0 || strcmp(argv[i], "--wav") == 0) && i + 1 < argc) {
+        /* WAV: se guarda verbatim con tipo "WAV " y 3 props (DATE, NAME, ORIG) */
+        if (strcmp(argv[i], "--wav") == 0 && i + 1 < argc) {
+            u8* buf; u32 sz;
+            if (load_file_bytes(argv[i+1], &buf, &sz)) {
+                DatObject* o = &objs[dat->num_objects++];
+                memcpy(o->type, "WAV ", 4); o->body.any = buf;
+                o->len_uncompressed = o->len_compressed = (s32)sz;
+                o->num_properties = 3; o->properties = (Property*)calloc(3, sizeof(Property));
+                sanitize_allegro_name(clean_name, basename_portable(argv[i+1]));
+                set_prop(&o->properties[0], "DATE", datebuf);
+                set_prop(&o->properties[1], "NAME", clean_name);
+                set_prop(&o->properties[2], "ORIG", argv[i+1]);
+            }
+            i++; continue;
+        }
+
+        /* DATA: blob generico */
+        if (strcmp(argv[i], "--data") == 0 && i + 1 < argc) {
             u8* buf; u32 sz;
             if (load_file_bytes(argv[i+1], &buf, &sz)) {
                 DatObject* o = &objs[dat->num_objects++];
                 memcpy(o->type, "DATA", 4); o->body.any = buf;
                 o->len_uncompressed = o->len_compressed = (s32)sz;
-                o->num_properties = 4; o->properties = (Property*)calloc(4, sizeof(Property));
+                o->num_properties = 3; o->properties = (Property*)calloc(3, sizeof(Property));
+                sanitize_allegro_name(clean_name, basename_portable(argv[i+1]));
                 set_prop(&o->properties[0], "DATE", datebuf);
-                set_prop(&o->properties[1], "NAME", basename_portable(argv[i+1]));
+                set_prop(&o->properties[1], "NAME", clean_name);
                 set_prop(&o->properties[2], "ORIG", argv[i+1]);
-                set_prop(&o->properties[3], "FMT ", (argv[i][2] == 'w') ? "WAV " : "DATA");
             }
             i++; continue;
         }
