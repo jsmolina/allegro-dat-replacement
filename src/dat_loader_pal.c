@@ -132,8 +132,8 @@ int load_act_to_pal63(const char *filename, u8 **out_pal)
         free(raw); *out_pal = pal; return 1;
     }
 
-    fprintf(stderr, "Error: formato de paleta no reconocido en '%s'\n"
-                    "       Formatos soportados: ACT (768/772 bytes), RIFF PAL, JASC PAL, raw RGB 768 bytes\n",
+    fprintf(stderr, "Error: not recognized palette type '%s', did you mean --pal-bmp?\n"
+                    "       Supported formats: ACT (768/772 bytes), RIFF PAL, JASC PAL, raw RGB 768 bytes\n",
             filename);
     free(pal); free(raw); return 0;
 }
@@ -172,8 +172,8 @@ int load_bmp_to_pal63(const char *filename, u8 **out_pal)
 
     /* Solo BMPs indexados tienen tabla de colores */
     if (biBitCount != 1 && biBitCount != 4 && biBitCount != 8) {
-        fprintf(stderr, "Error: '%s' es un BMP de %u bpp y no tiene tabla de colores.\n"
-                        "       Usa un BMP indexado (1, 4 u 8 bpp).\n",
+        fprintf(stderr, "Error: '%s' is a BMP %u bpp and has no color table.\n"
+                        "       Use an indexed BMP (1, 4 or 8 bpp).\n",
                 filename, biBitCount);
         fclose(f); return 0;
     }

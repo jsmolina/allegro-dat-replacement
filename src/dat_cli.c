@@ -233,11 +233,11 @@ static int dat_list(const char *filename) {
 
     /* Load whole file */
     if (!load_file_bytes(filename, &buf, &bufsz)) {
-        fprintf(stderr, "Error: no se puede abrir '%s'\n", filename);
+        fprintf(stderr, "Error: cannot open '%s'\n", filename);
         return 1;
     }
 
-    if (bufsz < 12) { free(buf); fprintf(stderr, "Error: fichero demasiado pequenio\n"); return 1; }
+    if (bufsz < 12) { free(buf); fprintf(stderr, "Error: file too small\n"); return 1; }
 
     pos = 0;
     pack_magic  = read_be32_buf(buf, bufsz, &pos);
@@ -249,17 +249,17 @@ static int dat_list(const char *filename) {
         /* F_NOPACK_MAGIC + DAT_MAGIC - uncompressed, OK */
     } else if (pack_magic == 0x736C6821u) {
         /* F_PACK_MAGIC - LZSS compressed, not supported */
-        fprintf(stderr, "Error: '%s' esta comprimido con LZSS (no soportado)\n", filename);
+        fprintf(stderr, "Error: '%s' is compressed with LZSS (not supported)\n", filename);
         free(buf); return 1;
     } else {
-        fprintf(stderr, "Error: '%s' no es un fichero DAT de Allegro valido\n", filename);
+        fprintf(stderr, "Error: '%s' is not a valid Allegro DAT file\n", filename);
         free(buf); return 1;
     }
 
-    printf("Fichero: %s\n", filename);
-    printf("Objetos: %u\n\n", num_objects);
+    printf("File: %s\n", filename);
+    printf("Objects: %u\n\n", num_objects);
     printf("%-4s  %-*s  %-14s  %10s  %s\n",
-           "#", name_w, "Nombre", "Tipo", "Tamano", "Detalles");
+           "#", name_w, "Name", "Type", "Size", "Details");
     printf("%-4s  %-*s  %-14s  %10s  %s\n",
            "----", name_w, "--------------------------------",
            "--------------", "----------", "-------");
@@ -501,7 +501,7 @@ int main(int argc, char** argv) {
                     set_prop(&o->properties[1], "NAME", clean_name);
                     set_prop(&o->properties[2], "ORIG", argv[i+1]);
                 } else {
-                    fprintf(stderr, "Error: no se pudo convertir '%s' a formato SAMP de Allegro\n", argv[i+1]);
+                    fprintf(stderr, "Error: could not convert '%s' to Allegro SAMP format\n", argv[i+1]);
                 }
                 free(raw);
             }
@@ -524,7 +524,7 @@ int main(int argc, char** argv) {
                     set_prop(&o->properties[1], "NAME", clean_name);
                     set_prop(&o->properties[2], "ORIG", argv[i+1]);
                 } else {
-                    fprintf(stderr, "Error: '%s' no es un fichero FLI/FLC valido\n", argv[i+1]);
+                    fprintf(stderr, "Error: '%s' is not a valid FLI/FLC file\n", argv[i+1]);
                     free(buf);
                 }
             }
