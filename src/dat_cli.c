@@ -78,6 +78,7 @@ static void usage(void) {
     printf("      [--data file.bin]* [--wav file.wav]*\n");
     printf("      [--flic file.fli/flc]*\n");
     printf("      [--pal file.act]* [--pal-bmp file.bmp]*\n\n");
+    printf("      [--h file.h] (creates header definition)*\n\n");
     printf("  dat list in.dat\n\n");
 }
 
@@ -621,6 +622,24 @@ int main(int argc, char** argv) {
                     break;                
             }
             continue;   
+        }
+
+        /* create header */
+        if (strcmp(argv[i], "--h") == 0 && i + 1 < argc) {            
+            FILE *header;            
+            header = fopen(argv[i+1], "w");            
+            if (!header) {
+                printf("Error: No se pudo abrir o crear el archivo .h.\n");                
+            }
+            else
+            {
+                for (int j = 0; j < dat->num_objects - 1; j++)
+                {
+                    fprintf(header, "#define %-30s\t%-4d\t//%.4s\n", dat->objects[j].properties[1].body, j, dat->objects[j].type);
+                }                
+                fclose(header);   
+            }
+            i++; continue;
         }
     }
 
