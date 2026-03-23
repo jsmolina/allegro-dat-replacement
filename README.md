@@ -22,9 +22,11 @@ dat create out.dat
       [--wav file.wav]*
       [--data file.bin]*
       [--flic file.fli]*
+      [--h header_file.h]*
 
 dat list in.dat
 ```
+--h will create a header file with the references to the elements.
 
 ## What problem it solves
 
@@ -52,3 +54,7 @@ Mainly for:
 - **removing the dependency on the allegro boilerplate for generating dats**
 - making asset management easier (sprites, audio, etc.)
 - integrating more modern build pipelines
+
+## Contributors
+@jsmolina
+@warrior-rockk
