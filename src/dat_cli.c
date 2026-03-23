@@ -375,176 +375,252 @@ int main(int argc, char** argv) {
         char clean_name[64];
         
         /* BMP */
-        if (strcmp(argv[i], "--bmp") == 0 && i + 1 < argc) {
-            DatBitmap* bmp = NULL;
-            if (load_bmp_to_dat_bitmap(argv[i+1], &bmp)) {
-                DatObject* o = &objs[dat->num_objects++];
-                memcpy(o->type, "BMP ", 4); o->body.bmp = bmp;
-                o->len_uncompressed = o->len_compressed = (s32)(2+2+2 + (bmp->width * bmp->height * ((u32)bmp->bits_per_pixel / 8u)));
-                o->num_properties = 3; o->properties = (Property*)calloc(3, sizeof(Property));
-                set_prop(&o->properties[0], "DATE", datebuf);
-                sanitize_allegro_name(clean_name, basename_portable(argv[i+1]));
-                set_prop(&o->properties[1], "NAME", clean_name);
-                set_prop(&o->properties[2], "ORIG", argv[i+1]);
+        if (strcmp(argv[i], "--bmp") == 0 && i + 1 < argc)
+        {
+            //iterate until next argument isn't another flag or all files processed
+            while ((i + 1) < argc && argv[i + 1][0] != '-') { 
+                DatBitmap* bmp = NULL;
+                if (load_bmp_to_dat_bitmap(argv[i+1], &bmp)) {
+                    DatObject* o = &objs[dat->num_objects++];
+                    memcpy(o->type, "BMP ", 4); o->body.bmp = bmp;
+                    o->len_uncompressed = o->len_compressed = (s32)(2+2+2 + (bmp->width * bmp->height * ((u32)bmp->bits_per_pixel / 8u)));
+                    o->num_properties = 3; o->properties = (Property*)calloc(3, sizeof(Property));
+                    set_prop(&o->properties[0], "DATE", datebuf);
+                    sanitize_allegro_name(clean_name, basename_portable(argv[i+1]));
+                    set_prop(&o->properties[1], "NAME", clean_name);
+                    set_prop(&o->properties[2], "ORIG", argv[i+1]);
+                }
+                                
+                // if there's more than one file, next but only increments if isn't last file
+                if ((i + 2) < argc && argv[i+2][0] != '-') 
+                    i++;
+                else 
+                    break;                
             }
-            i++; continue;
+            continue;
         }
 
         /* PAL */
         if (strcmp(argv[i], "--pal") == 0 && i + 1 < argc) {
-            u8* pal = NULL;
-            if (load_act_to_pal63(argv[i+1], &pal)) {
-                DatObject* o = &objs[dat->num_objects++];
-                memcpy(o->type, "PAL ", 4); o->body.pal = pal;
-                o->len_uncompressed = o->len_compressed = 256 * 4; /* Spec: 256 x {R,G,B,pad} */
-                o->num_properties = 3; o->properties = (Property*)calloc(3, sizeof(Property));
-                set_prop(&o->properties[0], "DATE", datebuf);
-                sanitize_allegro_name(clean_name, basename_portable(argv[i+1]));
-                set_prop(&o->properties[1], "NAME", clean_name);
-                set_prop(&o->properties[2], "ORIG", argv[i+1]);
+            //iterate until next argument isn't another flag or all files processed
+            while ((i + 1) < argc && argv[i + 1][0] != '-') { 
+                u8* pal = NULL;
+                if (load_act_to_pal63(argv[i+1], &pal)) {
+                    DatObject* o = &objs[dat->num_objects++];
+                    memcpy(o->type, "PAL ", 4); o->body.pal = pal;
+                    o->len_uncompressed = o->len_compressed = 256 * 4; /* Spec: 256 x {R,G,B,pad} */
+                    o->num_properties = 3; o->properties = (Property*)calloc(3, sizeof(Property));
+                    set_prop(&o->properties[0], "DATE", datebuf);
+                    sanitize_allegro_name(clean_name, basename_portable(argv[i+1]));
+                    set_prop(&o->properties[1], "NAME", clean_name);
+                    set_prop(&o->properties[2], "ORIG", argv[i+1]);
+                }      
+                // if there's more than one file, next but only increments if isn't last file
+                if (i + 2 < argc && argv[i+2][0] != '-') 
+                    i++;
+                else 
+                    break;                
             }
-            i++; continue;
+            continue;
         }
 
         /* PAL desde BMP indexado (1/4/8 bpp) */
         if (strcmp(argv[i], "--pal-bmp") == 0 && i + 1 < argc) {
-            u8* pal = NULL;
-            if (load_bmp_to_pal63(argv[i+1], &pal)) {
-                DatObject* o = &objs[dat->num_objects++];
-                memcpy(o->type, "PAL ", 4); o->body.pal = pal;
-                o->len_uncompressed = o->len_compressed = 256 * 4;
-                o->num_properties = 3; o->properties = (Property*)calloc(3, sizeof(Property));
-                set_prop(&o->properties[0], "DATE", datebuf);
-                sanitize_allegro_name(clean_name, basename_portable(argv[i+1]));
-                set_prop(&o->properties[1], "NAME", clean_name);
-                set_prop(&o->properties[2], "ORIG", argv[i+1]);
+            //iterate until next argument isn't another flag or all files processed
+            while ((i + 1) < argc && argv[i + 1][0] != '-') { 
+                u8* pal = NULL;
+                if (load_bmp_to_pal63(argv[i+1], &pal)) {
+                    DatObject* o = &objs[dat->num_objects++];
+                    memcpy(o->type, "PAL ", 4); o->body.pal = pal;
+                    o->len_uncompressed = o->len_compressed = 256 * 4;
+                    o->num_properties = 3; o->properties = (Property*)calloc(3, sizeof(Property));
+                    set_prop(&o->properties[0], "DATE", datebuf);
+                    sanitize_allegro_name(clean_name, basename_portable(argv[i+1]));
+                    set_prop(&o->properties[1], "NAME", clean_name);
+                    set_prop(&o->properties[2], "ORIG", argv[i+1]);
+                }
+                // if there's more than one file, next but only increments if isn't last file
+                if (i + 2 < argc && argv[i+2][0] != '-') 
+                    i++;
+                else 
+                    break;                
             }
-            i++; continue;
+            continue;
         }
 
         /* RLE */
         if (strcmp(argv[i], "--rle") == 0 && i + 1 < argc) {
-            u8* buf; u32 sz;
-            if (load_file_bytes(argv[i+1], &buf, &sz)) {
-                DatRleSprite* r = (DatRleSprite*)calloc(1, sizeof(DatRleSprite));
-                r->bits_per_pixel = 8; r->len_image = sz; r->image = buf;
-                DatObject* o = &objs[dat->num_objects++];
-                memcpy(o->type, "RLE ", 4); o->body.rle = r;
-                o->len_uncompressed = o->len_compressed = (s32)(2+2+2+4) + (s32)sz;
-                o->num_properties = 3; o->properties = (Property*)calloc(3, sizeof(Property));
-                set_prop(&o->properties[0], "DATE", datebuf);
-                sanitize_allegro_name(clean_name, basename_portable(argv[i+1]));
-                set_prop(&o->properties[1], "NAME", clean_name);
-                set_prop(&o->properties[2], "ORIG", argv[i+1]);
+            //iterate until next argument isn't another flag or all files processed
+            while ((i + 1) < argc && argv[i + 1][0] != '-') { 
+                u8* buf; u32 sz;
+                if (load_file_bytes(argv[i+1], &buf, &sz)) {
+                    DatRleSprite* r = (DatRleSprite*)calloc(1, sizeof(DatRleSprite));
+                    r->bits_per_pixel = 8; r->len_image = sz; r->image = buf;
+                    DatObject* o = &objs[dat->num_objects++];
+                    memcpy(o->type, "RLE ", 4); o->body.rle = r;
+                    o->len_uncompressed = o->len_compressed = (s32)(2+2+2+4) + (s32)sz;
+                    o->num_properties = 3; o->properties = (Property*)calloc(3, sizeof(Property));
+                    set_prop(&o->properties[0], "DATE", datebuf);
+                    sanitize_allegro_name(clean_name, basename_portable(argv[i+1]));
+                    set_prop(&o->properties[1], "NAME", clean_name);
+                    set_prop(&o->properties[2], "ORIG", argv[i+1]);
+                }
+                // if there's more than one file, next but only increments if isn't last file
+                if (i + 2 < argc && argv[i+2][0] != '-') 
+                    i++;
+                else 
+                    break;                
             }
-            i++; continue;
+            continue;
         }
 
         /* FONT 8x8 y 8x16 */
         if ((strcmp(argv[i], "--font8-bmp") == 0 || strcmp(argv[i], "--font16-bmp") == 0) && i + 1 < argc) {
-            DatFont* font = NULL;
-            int is16 = (argv[i][6] == '1');
-            int ok = is16 ? build_font16_from_bmp(argv[i+1], 128, &font) : build_font8_from_bmp(argv[i+1], 128, &font);
-            if (ok) {
-                DatObject* o = &objs[dat->num_objects++];
-                memcpy(o->type, "FONT", 4); o->body.font = font;
-                o->len_uncompressed = o->len_compressed = (2 + 95 * (is16 ? 16 : 8));
-                o->num_properties = 3; o->properties = (Property*)calloc(3, sizeof(Property));
-                set_prop(&o->properties[0], "DATE", datebuf);
-                sanitize_allegro_name(clean_name, basename_portable(argv[i+1]));
-                set_prop(&o->properties[1], "NAME", clean_name);
-                set_prop(&o->properties[2], "ORIG", argv[i+1]);
+            //iterate until next argument isn't another flag or all files processed
+            while ((i + 1) < argc && argv[i + 1][0] != '-') { 
+                DatFont* font = NULL;
+                int is16 = (argv[i][6] == '1');
+                int ok = is16 ? build_font16_from_bmp(argv[i+1], 128, &font) : build_font8_from_bmp(argv[i+1], 128, &font);
+                if (ok) {
+                    DatObject* o = &objs[dat->num_objects++];
+                    memcpy(o->type, "FONT", 4); o->body.font = font;
+                    o->len_uncompressed = o->len_compressed = (2 + 95 * (is16 ? 16 : 8));
+                    o->num_properties = 3; o->properties = (Property*)calloc(3, sizeof(Property));
+                    set_prop(&o->properties[0], "DATE", datebuf);
+                    sanitize_allegro_name(clean_name, basename_portable(argv[i+1]));
+                    set_prop(&o->properties[1], "NAME", clean_name);
+                    set_prop(&o->properties[2], "ORIG", argv[i+1]);
+                }
+                // if there's more than one file, next but only increments if isn't last file
+                if (i + 2 < argc && argv[i+2][0] != '-') 
+                    i++;
+                else 
+                    break;                
             }
-            i++; continue;
+            continue;
         }
 
         /* MIDI: convierte SMF (.mid) al formato interno de Allegro 4 */
-        if (strcmp(argv[i], "--midi") == 0 && i + 1 < argc) {
-            u8* raw; u32 raw_sz;
-            if (load_file_bytes(argv[i+1], &raw, &raw_sz)) {
-                u8* alg_buf = NULL;
-                unsigned int alg_sz = 0;
-                if (mid_to_allegro_dat(raw, raw_sz, &alg_buf, &alg_sz)) {
-                    sanitize_allegro_name(clean_name, basename_portable(argv[i+1]));
-                    DatObject* o = &objs[dat->num_objects++];
-                    memcpy(o->type, "MIDI", 4);
-                    o->body.any = alg_buf;
-                    o->len_uncompressed = o->len_compressed = (s32)alg_sz;
-                    o->num_properties = 3;
-                    o->properties = (Property*)calloc(3, sizeof(Property));
-                    set_prop(&o->properties[0], "DATE", datebuf);
-                    set_prop(&o->properties[1], "NAME", clean_name);
-                    set_prop(&o->properties[2], "ORIG", argv[i+1]);
-                } else {
-                    fprintf(stderr, "Error: no se pudo convertir '%s' a formato MIDI de Allegro\n", argv[i+1]);
-                }
-                free(raw);
+        if (strcmp(argv[i], "--midi") == 0 && i + 1 < argc)
+        {
+            //iterate until next argument isn't another flag or all files processed
+            while ((i + 1) < argc && argv[i + 1][0] != '-') { 
+                u8* raw; u32 raw_sz;
+                if (load_file_bytes(argv[i+1], &raw, &raw_sz)) {
+                    u8* alg_buf = NULL;
+                    unsigned int alg_sz = 0;
+                    if (mid_to_allegro_dat(raw, raw_sz, &alg_buf, &alg_sz)) {
+                        sanitize_allegro_name(clean_name, basename_portable(argv[i+1]));
+                        DatObject* o = &objs[dat->num_objects++];
+                        memcpy(o->type, "MIDI", 4);
+                        o->body.any = alg_buf;
+                        o->len_uncompressed = o->len_compressed = (s32)alg_sz;
+                        o->num_properties = 3;
+                        o->properties = (Property*)calloc(3, sizeof(Property));
+                        set_prop(&o->properties[0], "DATE", datebuf);
+                        set_prop(&o->properties[1], "NAME", clean_name);
+                        set_prop(&o->properties[2], "ORIG", argv[i+1]);
+                    } else {
+                        fprintf(stderr, "Error: no se pudo convertir '%s' a formato MIDI de Allegro\n", argv[i+1]);
+                    }
+                    free(raw);
+                }          
+                // if there's more than one file, next but only increments if isn't last file
+                if (i + 2 < argc && argv[i+2][0] != '-') 
+                    i++;
+                else 
+                    break;                
             }
-            i++; continue;
+            continue;
         }
 
         /* WAV: convierte RIFF/PCM al formato interno SAMP de Allegro 4 */
-        if (strcmp(argv[i], "--wav") == 0 && i + 1 < argc) {
-            u8* raw; u32 raw_sz;
-            if (load_file_bytes(argv[i+1], &raw, &raw_sz)) {
-                u8* alg_buf = NULL;
-                unsigned int alg_sz = 0;
-                if (wav_to_allegro_samp(raw, raw_sz, &alg_buf, &alg_sz)) {
-                    DatObject* o = &objs[dat->num_objects++];
-                    memcpy(o->type, "SAMP", 4);
-                    o->body.any = alg_buf;
-                    o->len_uncompressed = o->len_compressed = (s32)alg_sz;
-                    o->num_properties = 3;
-                    o->properties = (Property*)calloc(3, sizeof(Property));
-                    sanitize_allegro_name(clean_name, basename_portable(argv[i+1]));
-                    set_prop(&o->properties[0], "DATE", datebuf);
-                    set_prop(&o->properties[1], "NAME", clean_name);
-                    set_prop(&o->properties[2], "ORIG", argv[i+1]);
-                } else {
-                    fprintf(stderr, "Error: could not convert '%s' to Allegro SAMP format\n", argv[i+1]);
-                }
-                free(raw);
+        if (strcmp(argv[i], "--wav") == 0 && i + 1 < argc)
+        {
+            //iterate until next argument isn't another flag or all files processed
+            while ((i + 1) < argc && argv[i + 1][0] != '-') { 
+                u8* raw; u32 raw_sz;
+                if (load_file_bytes(argv[i+1], &raw, &raw_sz)) {
+                    u8* alg_buf = NULL;
+                    unsigned int alg_sz = 0;
+                    if (wav_to_allegro_samp(raw, raw_sz, &alg_buf, &alg_sz)) {
+                        DatObject* o = &objs[dat->num_objects++];
+                        memcpy(o->type, "SAMP", 4);
+                        o->body.any = alg_buf;
+                        o->len_uncompressed = o->len_compressed = (s32)alg_sz;
+                        o->num_properties = 3;
+                        o->properties = (Property*)calloc(3, sizeof(Property));
+                        sanitize_allegro_name(clean_name, basename_portable(argv[i+1]));
+                        set_prop(&o->properties[0], "DATE", datebuf);
+                        set_prop(&o->properties[1], "NAME", clean_name);
+                        set_prop(&o->properties[2], "ORIG", argv[i+1]);
+                    } else {
+                        fprintf(stderr, "Error: could not convert '%s' to Allegro SAMP format\n", argv[i+1]);
+                    }
+                    free(raw);
+                }          
+                // if there's more than one file, next but only increments if isn't last file
+                if (i + 2 < argc && argv[i+2][0] != '-') 
+                    i++;
+                else 
+                    break;                
             }
-            i++; continue;
-        }
+            continue;
+}
 
         /* FLIC: animacion FLI/FLC, almacenada verbatim (spec: "standard format") */
         if (strcmp(argv[i], "--flic") == 0 && i + 1 < argc) {
-            u8* buf; u32 sz;
-            if (load_file_bytes(argv[i+1], &buf, &sz)) {
-                /* Validar magic FLI (0xAF11) o FLC (0xAF12) en offset 4, little-endian */
-                if (sz >= 6 && ((buf[4] == 0x11 && buf[5] == 0xAF) ||
-                                (buf[4] == 0x12 && buf[5] == 0xAF))) {
+            //iterate until next argument isn't another flag or all files processed
+            while ((i + 1) < argc && argv[i + 1][0] != '-') { 
+                u8* buf; u32 sz;
+                if (load_file_bytes(argv[i+1], &buf, &sz)) {
+                    /* Validar magic FLI (0xAF11) o FLC (0xAF12) en offset 4, little-endian */
+                    if (sz >= 6 && ((buf[4] == 0x11 && buf[5] == 0xAF) ||
+                                    (buf[4] == 0x12 && buf[5] == 0xAF))) {
+                        DatObject* o = &objs[dat->num_objects++];
+                        memcpy(o->type, "FLIC", 4); o->body.any = buf;
+                        o->len_uncompressed = o->len_compressed = (s32)sz;
+                        o->num_properties = 3; o->properties = (Property*)calloc(3, sizeof(Property));
+                        sanitize_allegro_name(clean_name, basename_portable(argv[i+1]));
+                        set_prop(&o->properties[0], "DATE", datebuf);
+                        set_prop(&o->properties[1], "NAME", clean_name);
+                        set_prop(&o->properties[2], "ORIG", argv[i+1]);
+                    } else {
+                        fprintf(stderr, "Error: '%s' is not a valid FLI/FLC file\n", argv[i+1]);
+                        free(buf);
+                    }
+                }
+                // if there's more than one file, next but only increments if isn't last file
+                if (i + 2 < argc && argv[i+2][0] != '-') 
+                    i++;
+                else 
+                    break;                
+            }
+            continue;
+        }
+
+        /* DATA: blob generico */
+        if (strcmp(argv[i], "--data") == 0 && i + 1 < argc) {
+            //iterate until next argument isn't another flag or all files processed
+            while ((i + 1) < argc && argv[i + 1][0] != '-') { 
+                u8* buf; u32 sz;
+                if (load_file_bytes(argv[i+1], &buf, &sz)) {
                     DatObject* o = &objs[dat->num_objects++];
-                    memcpy(o->type, "FLIC", 4); o->body.any = buf;
+                    memcpy(o->type, "DATA", 4); o->body.any = buf;
                     o->len_uncompressed = o->len_compressed = (s32)sz;
                     o->num_properties = 3; o->properties = (Property*)calloc(3, sizeof(Property));
                     sanitize_allegro_name(clean_name, basename_portable(argv[i+1]));
                     set_prop(&o->properties[0], "DATE", datebuf);
                     set_prop(&o->properties[1], "NAME", clean_name);
                     set_prop(&o->properties[2], "ORIG", argv[i+1]);
-                } else {
-                    fprintf(stderr, "Error: '%s' is not a valid FLI/FLC file\n", argv[i+1]);
-                    free(buf);
-                }
+                }       
+                // if there's more than one file, next but only increments if isn't last file
+                if (i + 2 < argc && argv[i+2][0] != '-') 
+                    i++;
+                else 
+                    break;                
             }
-            i++; continue;
-        }
-
-        /* DATA: blob generico */
-        if (strcmp(argv[i], "--data") == 0 && i + 1 < argc) {
-            u8* buf; u32 sz;
-            if (load_file_bytes(argv[i+1], &buf, &sz)) {
-                DatObject* o = &objs[dat->num_objects++];
-                memcpy(o->type, "DATA", 4); o->body.any = buf;
-                o->len_uncompressed = o->len_compressed = (s32)sz;
-                o->num_properties = 3; o->properties = (Property*)calloc(3, sizeof(Property));
-                sanitize_allegro_name(clean_name, basename_portable(argv[i+1]));
-                set_prop(&o->properties[0], "DATE", datebuf);
-                set_prop(&o->properties[1], "NAME", clean_name);
-                set_prop(&o->properties[2], "ORIG", argv[i+1]);
-            }
-            i++; continue;
+            continue;   
         }
     }
 
