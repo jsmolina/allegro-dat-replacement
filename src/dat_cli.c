@@ -15,7 +15,7 @@
 #include "wav_to_allegro.h"
 
 /* ------------------------------------------------------------------ */
-/* Utilidades basicas                                                  */
+/* Basic utilities                                                     */
 /* ------------------------------------------------------------------ */
 
 static char *dupstr(const char *s) {
@@ -41,7 +41,7 @@ static const char *basename_portable(const char *path) {
     return s ? s + 1 : path;
 }
 
-/* Convierte "musica.mid" en "MUSICA_MID" para que Allegro lo encuentre */
+/* Converts "musica.mid" to "MUSICA_MID" so Allegro can find it */
 static void sanitize_allegro_name(char *dest, const char *path) {
     const char *b = basename_portable(path);
     int i = 0;
@@ -52,7 +52,7 @@ static void sanitize_allegro_name(char *dest, const char *path) {
     dest[i] = '\0';
 }
 
-/* Formato de fecha exacto de small.dat: "m-dd-yyyy, h:mm" */
+/* Exact date format from small.dat: "m-dd-yyyy, h:mm" */
 static void now_datestr(char *buf, size_t n) {
     time_t t = time(NULL);
     struct tm *tmv = localtime(&t);
@@ -67,7 +67,7 @@ static void now_datestr(char *buf, size_t n) {
     }
 }
 
-/* Comparacion de cadenas case-insensitive portable (sin strcasecmp) */
+/* Portable case-insensitive string comparison (without strcasecmp) */
 static int str_iequal(const char *a, const char *b) {
     while (*a && *b) {
         if (tolower((unsigned char)*a) != tolower((unsigned char)*b))
@@ -78,13 +78,13 @@ static int str_iequal(const char *a, const char *b) {
 }
 
 /* ------------------------------------------------------------------ */
-/* Auto-deteccion de tipo por extension                                */
+/* Auto-detection of type by file extension                            */
 /* ------------------------------------------------------------------ */
 
 static const char *detect_type_from_extension(const char *filename) {
     const char *dot = strrchr(filename, '.');
     if (!dot) return "DATA";
-    dot++; /* apunta al texto despues del punto */
+    dot++; /* points to the text after the dot */
 
     if (str_iequal(dot, "bmp"))                    return "BMP";
     if (str_iequal(dot, "rle"))                    return "RLE";
@@ -100,7 +100,7 @@ static const char *detect_type_from_extension(const char *filename) {
 }
 
 /* ------------------------------------------------------------------ */
-/* Helper: inicializa las 3 propiedades estandar de un objeto         */
+/* Helper: initializes the 3 standard properties of an object         */
 /* ------------------------------------------------------------------ */
 
 static void init_object_props(DatObject *o, const char type[4], s32 size,
@@ -117,9 +117,10 @@ static void init_object_props(DatObject *o, const char type[4], s32 size,
 }
 
 /* ------------------------------------------------------------------ */
-/* find_or_alloc_slot: devuelve el slot donde escribir el objeto.     */
-/* Si ya existe un objeto con el mismo NAME sanitizado, lo libera y   */
-/* reutiliza ese slot (overwrite in-place). Si no, usa num_objects++. */
+/* find_or_alloc_slot: returns the slot where the object is written.  */
+/* If an object with the same sanitized NAME already exists, it frees */
+/* it and reuses that slot (overwrite in-place). Otherwise, uses      */
+/* num_objects++.                                                      */
 /* ------------------------------------------------------------------ */
 
 static DatObject *find_or_alloc_slot(AllegroDat *dat, DatObject *objs,
@@ -130,22 +131,22 @@ static DatObject *find_or_alloc_slot(AllegroDat *dat, DatObject *objs,
 
     for (i = 0; i < dat->num_objects; i++) {
         DatObject *o = &objs[i];
-        /* La propiedad NAME esta siempre en el indice 1 (DATE=0, NAME=1, ORIG=2) */
+        /* The NAME property is always at index 1 (DATE=0, NAME=1, ORIG=2) */
         if (o->num_properties >= 2 && o->properties[1].body &&
             strcmp(o->properties[1].body, new_name) == 0) {
-            fprintf(stderr, "Info: sobreescribiendo '%s' existente en el DAT\n", new_name);
+            fprintf(stderr, "Info: overwriting existing '%s' in the DAT\n", new_name);
             free_dat_object(o);
             memset(o, 0, sizeof(DatObject));
             return o; /* slot reutilizado, num_objects no cambia */
         }
     }
 
-    /* Nuevo objeto: usar siguiente slot */
+    /* New object: use next slot */
     return &objs[dat->num_objects++];
 }
 
 /* ------------------------------------------------------------------ */
-/* add_file: dispatcher central por tipo                               */
+/* add_file: central type dispatcher                                   */
 /* ------------------------------------------------------------------ */
 
 static int add_file(AllegroDat *dat, DatObject *objs,
@@ -157,7 +158,7 @@ static int add_file(AllegroDat *dat, DatObject *objs,
     if (str_iequal(type_str, "BMP")) {
         DatBitmap *bmp = NULL;
         if (!load_bmp_to_dat_bitmap(filepath, &bmp)) {
-            fprintf(stderr, "Error: no se pudo cargar BMP '%s'\n", filepath);
+            fprintf(stderr, "Error: could not load BMP '%s'\n", filepath);
             return 0;
         }
         o = find_or_alloc_slot(dat, objs, filepath);
@@ -176,7 +177,7 @@ static int add_file(AllegroDat *dat, DatObject *objs,
         int ok = is_bmp ? load_bmp_to_pal63(filepath, &pal)
                         : load_act_to_pal63(filepath, &pal);
         if (!ok) {
-            fprintf(stderr, "Error: no se pudo cargar PAL '%s'\n", filepath);
+            fprintf(stderr, "Error: could not load PAL '%s'\n", filepath);
             return 0;
         }
         o = find_or_alloc_slot(dat, objs, filepath);
@@ -190,7 +191,7 @@ static int add_file(AllegroDat *dat, DatObject *objs,
         u8 *buf; u32 sz;
         DatRleSprite *r;
         if (!load_file_bytes(filepath, &buf, &sz)) {
-            fprintf(stderr, "Error: no se pudo leer '%s'\n", filepath);
+            fprintf(stderr, "Error: could not read '%s'\n", filepath);
             return 0;
         }
         r = (DatRleSprite *)calloc(1, sizeof(DatRleSprite));
@@ -205,7 +206,7 @@ static int add_file(AllegroDat *dat, DatObject *objs,
     if (str_iequal(type_str, "FONT8") || str_iequal(type_str, "FONT")) {
         DatFont *font = NULL;
         if (!build_font8_from_bmp(filepath, 128, &font)) {
-            fprintf(stderr, "Error: no se pudo construir FONT8 desde '%s'\n", filepath);
+            fprintf(stderr, "Error: could not build FONT8 from '%s'\n", filepath);
             return 0;
         }
         o = find_or_alloc_slot(dat, objs, filepath);
@@ -218,7 +219,7 @@ static int add_file(AllegroDat *dat, DatObject *objs,
     if (str_iequal(type_str, "FONT16")) {
         DatFont *font = NULL;
         if (!build_font16_from_bmp(filepath, 128, &font)) {
-            fprintf(stderr, "Error: no se pudo construir FONT16 desde '%s'\n", filepath);
+            fprintf(stderr, "Error: could not build FONT16 from '%s'\n", filepath);
             return 0;
         }
         o = find_or_alloc_slot(dat, objs, filepath);
@@ -233,11 +234,11 @@ static int add_file(AllegroDat *dat, DatObject *objs,
         u8 *alg_buf = NULL;
         unsigned int alg_sz = 0;
         if (!load_file_bytes(filepath, &raw, &raw_sz)) {
-            fprintf(stderr, "Error: no se pudo leer '%s'\n", filepath);
+            fprintf(stderr, "Error: could not read '%s'\n", filepath);
             return 0;
         }
         if (!mid_to_allegro_dat(raw, raw_sz, &alg_buf, &alg_sz)) {
-            fprintf(stderr, "Error: no se pudo convertir '%s' a formato MIDI de Allegro\n", filepath);
+            fprintf(stderr, "Error: could not convert '%s' to Allegro MIDI format\n", filepath);
             free(raw);
             return 0;
         }
@@ -254,11 +255,11 @@ static int add_file(AllegroDat *dat, DatObject *objs,
         u8 *alg_buf = NULL;
         unsigned int alg_sz = 0;
         if (!load_file_bytes(filepath, &raw, &raw_sz)) {
-            fprintf(stderr, "Error: no se pudo leer '%s'\n", filepath);
+            fprintf(stderr, "Error: could not read '%s'\n", filepath);
             return 0;
         }
         if (!wav_to_allegro_samp(raw, raw_sz, &alg_buf, &alg_sz)) {
-            fprintf(stderr, "Error: no se pudo convertir '%s' a formato SAMP de Allegro\n", filepath);
+            fprintf(stderr, "Error: could not convert '%s' to Allegro SAMP format\n", filepath);
             free(raw);
             return 0;
         }
@@ -273,12 +274,12 @@ static int add_file(AllegroDat *dat, DatObject *objs,
     if (str_iequal(type_str, "FLIC")) {
         u8 *buf; u32 sz;
         if (!load_file_bytes(filepath, &buf, &sz)) {
-            fprintf(stderr, "Error: no se pudo leer '%s'\n", filepath);
+            fprintf(stderr, "Error: could not read '%s'\n", filepath);
             return 0;
         }
         if (sz < 6 || !((buf[4] == 0x11 && buf[5] == 0xAF) ||
                          (buf[4] == 0x12 && buf[5] == 0xAF))) {
-            fprintf(stderr, "Error: '%s' no es un fichero FLI/FLC valido\n", filepath);
+            fprintf(stderr, "Error: '%s' is not a valid FLI/FLC file\n", filepath);
             free(buf);
             return 0;
         }
@@ -288,11 +289,11 @@ static int add_file(AllegroDat *dat, DatObject *objs,
         return 1;
     }
 
-    /* --- DATA (blob generico) --- */
+    /* --- DATA (generic blob) --- */
     if (str_iequal(type_str, "DATA")) {
         u8 *buf; u32 sz;
         if (!load_file_bytes(filepath, &buf, &sz)) {
-            fprintf(stderr, "Error: no se pudo leer '%s'\n", filepath);
+            fprintf(stderr, "Error: could not read '%s'\n", filepath);
             return 0;
         }
         o = find_or_alloc_slot(dat, objs, filepath);
@@ -305,7 +306,7 @@ static int add_file(AllegroDat *dat, DatObject *objs,
     if (str_iequal(type_str, "CMP")) {
         u8 *buf; u32 sz;
         if (!load_file_bytes(filepath, &buf, &sz)) {
-            fprintf(stderr, "Error: no se pudo leer '%s'\n", filepath);
+            fprintf(stderr, "Error: could not read '%s'\n", filepath);
             return 0;
         }
         o = find_or_alloc_slot(dat, objs, filepath);
@@ -318,7 +319,7 @@ static int add_file(AllegroDat *dat, DatObject *objs,
     if (str_iequal(type_str, "XCMP")) {
         u8 *buf; u32 sz;
         if (!load_file_bytes(filepath, &buf, &sz)) {
-            fprintf(stderr, "Error: no se pudo leer '%s'\n", filepath);
+            fprintf(stderr, "Error: could not read '%s'\n", filepath);
             return 0;
         }
         o = find_or_alloc_slot(dat, objs, filepath);
@@ -331,7 +332,7 @@ static int add_file(AllegroDat *dat, DatObject *objs,
     if (str_iequal(type_str, "PAT")) {
         u8 *buf; u32 sz;
         if (!load_file_bytes(filepath, &buf, &sz)) {
-            fprintf(stderr, "Error: no se pudo leer '%s'\n", filepath);
+            fprintf(stderr, "Error: could not read '%s'\n", filepath);
             return 0;
         }
         o = find_or_alloc_slot(dat, objs, filepath);
@@ -340,13 +341,13 @@ static int add_file(AllegroDat *dat, DatObject *objs,
         return 1;
     }
 
-    /* --- Tipo generico: primeros 4 chars uppercase, pad con espacios --- */
+    /* --- Generic type: first 4 chars uppercase, pad with spaces --- */
     {
         u8 *buf; u32 sz;
         char tag[4];
         int k;
         if (!load_file_bytes(filepath, &buf, &sz)) {
-            fprintf(stderr, "Error: no se pudo leer '%s'\n", filepath);
+            fprintf(stderr, "Error: could not read '%s'\n", filepath);
             return 0;
         }
         for (k = 0; k < 4; k++)
@@ -380,7 +381,7 @@ static void usage(void) {
 }
 
 /* ------------------------------------------------------------------ */
-/* dat_list: lee y muestra el contenido de un fichero .dat            */
+/* dat_list: reads and displays the contents of a .dat file           */
 /* ------------------------------------------------------------------ */
 
 static u32 read_be32_buf(const u8 *buf, u32 bufsz, u32 *pos) {
@@ -509,11 +510,11 @@ static void print_type_detail(const char tag[4], const u8 *body, u32 body_sz) {
 }
 
 /* ------------------------------------------------------------------ */
-/* dat_load_existing: carga un .dat existente en el array de objetos. */
-/* Los objetos se almacenan como blobs verbatim (body.any = bytes ya  */
-/* en formato Allegro), con sus propiedades originales preservadas.   */
-/* El objeto GrabberInfo ("info") se descarta; se anadira uno nuevo.  */
-/* Devuelve el numero de objetos cargados, o -1 si falla.             */
+/* dat_load_existing: loads an existing .dat file into the object array. */
+/* Objects are stored as verbatim blobs (body.any = bytes already in     */
+/* Allegro format), with their original properties preserved.           */
+/* The GrabberInfo object ("info") is discarded; a new one will be added.*/
+/* Returns the number of objects loaded, or -1 if it fails.             */
 /* ------------------------------------------------------------------ */
 
 static int dat_load_existing(const char *filename, DatObject *objs, u32 max_objs) {
@@ -521,8 +522,8 @@ static int dat_load_existing(const char *filename, DatObject *objs, u32 max_objs
     u32  bufsz, pos, pack_magic, dat_magic, num_objects, idx;
     int  loaded = 0;
 
-    if (!load_file_bytes(filename, &buf, &bufsz)) return 0; /* fichero nuevo, OK */
-    if (bufsz < 12) { free(buf); fprintf(stderr, "Warning: '%s' demasiado pequeno, se ignorara\n", filename); return 0; }
+    if (!load_file_bytes(filename, &buf, &bufsz)) return 0; /* new file, OK */
+    if (bufsz < 12) { free(buf); fprintf(stderr, "Warning: '%s' too small, ignoring\n", filename); return 0; }
 
     pos = 0;
     pack_magic  = read_be32_buf(buf, bufsz, &pos);
@@ -531,7 +532,7 @@ static int dat_load_existing(const char *filename, DatObject *objs, u32 max_objs
 
     if (!(pack_magic == 0x736C682Eu && dat_magic == 0x414C4C2Eu)) {
         free(buf);
-        fprintf(stderr, "Error: '%s' no es un DAT de Allegro valido\n", filename);
+        fprintf(stderr, "Error: '%s' is not a valid Allegro DAT\n", filename);
         return -1;
     }
 
@@ -679,7 +680,7 @@ static int dat_list(const char *filename) {
         fprintf(stderr, "Error: no se puede abrir '%s'\n", filename);
         return 1;
     }
-    if (bufsz < 12) { free(buf); fprintf(stderr, "Error: fichero demasiado pequeno\n"); return 1; }
+    if (bufsz < 12) { free(buf); fprintf(stderr, "Error: file too small\n"); return 1; }
 
     pos = 0;
     pack_magic  = read_be32_buf(buf, bufsz, &pos);
@@ -687,12 +688,12 @@ static int dat_list(const char *filename) {
     num_objects = read_be32_buf(buf, bufsz, &pos);
 
     if (pack_magic == 0x736C682Eu && dat_magic == 0x414C4C2Eu) {
-        /* F_NOPACK_MAGIC + DAT_MAGIC — sin compresion, OK */
+        /* F_NOPACK_MAGIC + DAT_MAGIC — no compression, OK */
     } else if (pack_magic == 0x736C6821u) {
-        fprintf(stderr, "Error: '%s' esta comprimido con LZSS (no soportado)\n", filename);
+        fprintf(stderr, "Error: '%s' is compressed with LZSS (not supported)\n", filename);
         free(buf); return 1;
     } else {
-        fprintf(stderr, "Error: '%s' no es un fichero DAT de Allegro valido\n", filename);
+        fprintf(stderr, "Error: '%s' is not a valid Allegro DAT file\n", filename);
         free(buf); return 1;
     }
 
@@ -819,47 +820,47 @@ int main(int argc, char **argv) {
         /* -t TYPE : forzar tipo para el proximo -a */
         if (strcmp(argv[i], "-t") == 0) {
             if (i + 1 >= argc) {
-                fprintf(stderr, "Error: -t requiere un argumento TYPE\n");
+                fprintf(stderr, "Error: -t requires a TYPE argument\n");
                 free(objs); free(dat); return 1;
             }
             forced_type = argv[++i];
             continue;
         }
 
-        /* -a FILE : anadir fichero */
+        /* -a FILE : add file */
         if (strcmp(argv[i], "-a") == 0) {
             const char *filepath;
             const char *type_str;
             if (i + 1 >= argc) {
-                fprintf(stderr, "Error: -a requiere un fichero\n");
+                fprintf(stderr, "Error: -a requires a file\n");
                 free(objs); free(dat); return 1;
             }
             filepath = argv[++i];
             type_str = forced_type ? forced_type
                                    : detect_type_from_extension(filepath);
             add_file(dat, objs, filepath, type_str, datebuf);
-            forced_type = NULL; /* reset: solo aplica a un -a */
+            forced_type = NULL; /* reset: only applies to one -a */
             added_any = 1;
             continue;
         }
 
-        /* --h FILE : cabecera C */
+        /* --h FILE : C header */
         if (strcmp(argv[i], "--h") == 0) {
             if (i + 1 >= argc) {
-                fprintf(stderr, "Error: --h requiere un fichero de salida\n");
+                fprintf(stderr, "Error: --h requires an output file\n");
                 free(objs); free(dat); return 1;
             }
             header_file = argv[++i];
             continue;
         }
 
-        fprintf(stderr, "Warning: opcion desconocida '%s'\n", argv[i]);
+        fprintf(stderr, "Warning: unknown option '%s'\n", argv[i]);
     }
 
-    /* 4. Si no hubo ningun -a, mostrar uso */
+    /* 4. If no -a was provided, show usage */
     if (!added_any) { usage(); free(objs); free(dat); return 1; }
 
-    /* 5. Objeto final GrabberInfo */
+    /* 5. Final object GrabberInfo */
     {
         DatObject *o = &objs[dat->num_objects++];
         memcpy(o->type, "info", 4);
@@ -870,11 +871,11 @@ int main(int argc, char **argv) {
         set_prop(&o->properties[0], "NAME", "GrabberInfo");
     }
 
-    /* 6. Generar header si se pidio */
+    /* 6. Generate header if requested */
     if (header_file) {
         FILE *hf = fopen(header_file, "w");
         if (!hf) {
-            fprintf(stderr, "Error: no se pudo crear '%s'\n", header_file);
+            fprintf(stderr, "Error: could not create '%s'\n", header_file);
         } else {
             int j;
             for (j = 0; j < (int)dat->num_objects - 1; j++) {
