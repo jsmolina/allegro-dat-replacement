@@ -11,20 +11,23 @@ Compiling:
 
 Executing: 
 ```bash
-dat create out.dat
-      [--bmp file.bmp]*
-      [--pal file.act]*
-      [--pal-bmp file.bmp]*
-      [--rle file.rle]*
-      [--font8-bmp file.bmp]*
-      [--font16-bmp file.bmp]*
-      [--midi file.midi]*
-      [--wav file.wav]*
-      [--data file.bin]*
-      [--flic file.fli]*
-      [--h header_file.h]*
 
-dat list in.dat
+Usage:
+  dat <archivo.dat> -l
+  dat <archivo.dat> [-t TYPE] -a <file> [[-t TYPE] -a <file> ...] [--h header.h]
+
+Options:
+  -l            List contents of an existing .dat file
+  -a <file>     Add file (type auto-detected from extension)
+  -t TYPE       Force type for the next -a only, then resets
+  --h <file>    Generate C header with #define indices
+
+Auto-detected types by extension:
+  .bmp -> BMP | .rle -> RLE | .mid/.midi -> MIDI
+  .wav -> SAMP | .fli/.flc -> FLIC | .act/.pal -> PAL
+  (other) -> DATA
+
+Explicit -t types: BMP PAL RLE FONT8 FONT16 FONT MIDI SAMP WAV FLIC DATA CMP XCMP PAT
 ```
 --h will create a header file with the references to the elements.
 
